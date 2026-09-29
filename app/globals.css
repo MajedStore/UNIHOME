@@ -2306,3 +2306,22 @@ textarea,
     grid-column: auto;
   }
 }
+/* Compact, task-focused screens. */
+.login-main {
+  display: block;
+  width: 420px;
+  max-width: calc(100% - 32px);
+  padding: 36px 0;
+}
+.login-card > h2 {
+  margin-bottom: 24px;
+}
+.main-content {
+  padding-bottom: 32px;
+}
+.help-link {
+  font-size: 11px;
+}
+.page-heading {
+  margin-bottom: 24px;
+}

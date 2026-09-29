@@ -15,7 +15,6 @@ import {
   CheckCheck,
   ChevronLeft,
   Copy,
-  CreditCard,
   FileText,
   Home,
   LayoutGrid,
@@ -80,7 +79,6 @@ function Brand() {
       </span>
       <span>
         uni<span className="brand-light">home</span>
-        <small>بيتنا، حساباتنا، بكل بساطة</small>
       </span>
     </div>
   );
@@ -343,7 +341,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
     return (
       <div className="loading">
         <Brand />
-        <p>لحظة، نرتّب حسابات البيت…</p>
+        <p>جارٍ التحميل…</p>
       </div>
     );
   if (!data)
@@ -351,51 +349,14 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
       <div className="login-page">
         <header>
           <Brand />
-          <span className="subtle">بيت واحد. حسابات واضحة.</span>
         </header>
         <main className="login-main">
-          <section className="login-story">
-            <span className="eyebrow">مساحة صغيرة، راحة كبيرة</span>
-            <h1>
-              نعيش سوا.
-              <br />
-              ونرتّب حساباتنا <em>سوا.</em>
-            </h1>
-            <p>
-              الإيجار، الكهرباء، ومصاريف البيت.
-              <br />
-              كل شيء واضح، وكل دفعة في مكانها.
-            </p>
-            <div className="illustration">
-              <div className="illustration-home">
-                <Home size={72} strokeWidth={1.1} />
-              </div>
-              <div className="mini-receipt">
-                <span className="mini-check">
-                  <Check size={19} />
-                </span>
-                <div>
-                  <strong>الحسابات مرتّبة</strong>
-                  <small>وقت أكثر للأشياء المهمة</small>
-                </div>
-                <span className="receipt-lines">≡</span>
-              </div>
-              <div className="people-dots">
-                {["م", "ع", "ع", "ج", "ع", "س"].map((x, i) => (
-                  <span key={i} className={"avatar color-" + (i + 1)}>
-                    {x}
-                  </span>
-                ))}
-                <small>٦ زملاء، بيت واحد</small>
-              </div>
-            </div>
-          </section>
           <section className="login-card">
             <span className="square-icon">
               <Wallet size={26} />
             </span>
             <h2>أهلًا بك في بيتك</h2>
-            <p className="subtle">سجّل دخولك وتابع مصاريفك بكل راحة.</p>
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -436,9 +397,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 <ArrowLeft size={18} />
               </button>
             </form>
-            <p className="login-note">
-              <ShieldCheck size={16} /> حسابات خاصة بأفراد السكن فقط
-            </p>
             {demoMode && (
               <div className="demo-login">
                 <strong>نسخة تجريبية محلية</strong>
@@ -466,9 +424,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
             )}
           </section>
         </main>
-        <footer className="login-footer">
-          يوني هوم — لأن مشاركة البيت تبدأ بالوضوح.
-        </footer>
       </div>
     );
   const me = data.me;
@@ -649,7 +604,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           </span>
           <div>
             <h2>حسابك البنكي</h2>
-            <p>ليتمكن زملاؤك من التحويل إليك.</p>
           </div>
         </div>
         <form
@@ -822,23 +776,12 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           )}
         </nav>
         <div className="sidebar-bottom">
-          <div className="help-card">
-            <span className="help-icon">
-              <Home size={22} />
-            </span>
-            <strong>حسابات واضحة، بيت أريح.</strong>
-            <p>
-              كل مصاريفنا في مكان واحد،
-              <br />
-              لتبقى الأمور بسيطة بيننا.
-            </p>
-          </div>
           <button
             className="help-link"
             onClick={() => showModal({ kind: "help" })}
           >
             <CircleHelp size={18} />
-            كيف يعمل يوني هوم؟
+            المساعدة
             <ChevronLeft size={16} />
           </button>
           <div className="sidebar-user">
@@ -930,13 +873,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           )}
           <div className="page-heading">
             <div>
-              <span className="eyebrow">
-                {inAdmin
-                  ? "كل تفاصيل البيت، في مكان واحد"
-                  : page === "settings" || onboarding
-                    ? "معلوماتك، كما تحب"
-                    : "أهلًا بك في بيتك"}
-              </span>
               <h1>
                 {onboarding
                   ? "لنُكمل بياناتك أولًا"
@@ -949,15 +885,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                       : "أهلًا بك، " + me.name}
                 <span className="heading-dot">.</span>
               </h1>
-              <p>
-                {onboarding
-                  ? "أضف الآيبان واسم صاحب الحساب لتبدأ استخدام يوني هوم."
-                  : inAdmin
-                    ? "وزّع المصاريف، راجع الدفعات، وابقَ على اطّلاع."
-                    : page === "settings"
-                      ? "بياناتك البنكية وإعدادات الأمان في مكان واحد."
-                      : "هنا كل ما يخص مصاريفك. بكل وضوح وبدون تعقيد."}
-              </p>
             </div>
             {!onboarding && inAdmin ? (
               <button
@@ -1022,7 +949,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   <div className="balance-bottom">
                     <span className="light-dot" />
                     {total === 0
-                      ? "كل شيء مرتب، لا توجد مبالغ مستحقة"
+                      ? "لا توجد مبالغ مستحقة"
                       : `${scoped.filter((p) => ["unpaid", "review"].includes(p.status)).length} طلبات تحتاج إلى المتابعة`}
                     <ArrowDownLeft size={18} />
                   </div>
@@ -1052,7 +979,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                     <h2>
                       أفراد البيت <span>{data.users.length}</span>
                     </h2>
-                    <span className="subtle">اضغط على أي فرد لعرض طلباته</span>
                   </div>
                   <div className="members-grid">
                     {data.users.map((u) => (
@@ -1115,7 +1041,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                         : "طلبات الدفع"}
                       <span className="count-pill">{scoped.length}</span>
                     </h2>
-                    <p>تابع طلباتك ودفعاتك، خطوة بخطوة.</p>
                   </div>
                   <div className="search-field">
                     <Search size={17} />
@@ -1163,16 +1088,9 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                         {query
                           ? "لا توجد نتائج لهذا البحث"
                           : filter === "all"
-                            ? "صفحة جديدة، وحسابات مرتّبة"
+                            ? "لا توجد طلبات"
                             : "لا توجد طلبات هنا"}
                       </h3>
-                      <p>
-                        {query
-                          ? "جرّب البحث بكلمة أخرى."
-                          : inAdmin
-                            ? "أنشئ طلبًا وحدّد الأشخاص لتوزيع مصاريف البيت."
-                            : "ستظهر طلباتك هنا عندما يضيف المسؤول مصروفًا جديدًا."}
-                      </p>
                       {inAdmin && filter === "all" && !query && (
                         <button
                           className="secondary"
@@ -1200,36 +1118,8 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   </span>
                 </div>
               </section>
-              <div className="how-banner">
-                <span className="square-icon">
-                  <CreditCard size={22} />
-                </span>
-                <div>
-                  <strong>كيف أسدّد طلبًا؟</strong>
-                  <p>
-                    اطّلع على بيانات التحويل، حوّل المبلغ، ثم أرسل تنبيهًا
-                    للمسؤول. بهذه البساطة.
-                  </p>
-                </div>
-                <button
-                  className="text-button"
-                  onClick={() => showModal({ kind: "help" })}
-                >
-                  اعرف أكثر
-                  <ArrowLeft size={16} />
-                </button>
-              </div>
             </>
           )}
-          <footer className="app-footer">
-            <span>
-              يوني هوم <span>·</span> مصاريف مشتركة، براحة بال.
-            </span>
-            <span>
-              <ShieldCheck size={14} />
-              مساحتكم الخاصة
-            </span>
-          </footer>
         </main>
       </div>
       {onboarding && (
