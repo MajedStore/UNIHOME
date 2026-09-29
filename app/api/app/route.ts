@@ -3,7 +3,15 @@ import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
 import { authenticated, sameOrigin, sessionHash } from "@/lib/auth";
 import { limitedBody } from "@/lib/body";
-import { demo, mutate, readState } from "@/lib/store";
+import {
+  demo,
+  mutate,
+  readState,
+  pendingResetFiles,
+  clearResetFile,
+} from "@/lib/store";
+import { canReset, resetState } from "@/lib/reset";
+import { deleteFile } from "@/lib/storage";
 import {
   AppError,
   audit,
@@ -52,6 +60,7 @@ export async function GET() {
     return NextResponse.json(
       {
         me: safeUser(actor),
+        canReset: canReset(actor),
         users:
           actor.role === "admin"
             ? state.users.map(safeUser)
@@ -143,6 +152,34 @@ export async function POST(request: Request) {
       });
       (await cookies()).delete("unihome_session");
       return NextResponse.json({ ok: true });
+    }
+    if (input.action === "reset") {
+      await mutate(
+        (state) =>
+          resetState(
+            state,
+            authenticated(state, hash),
+            input.password,
+            input.confirmation,
+          ),
+        true,
+      );
+      (await cookies()).delete("unihome_session");
+      let remaining = 0;
+      for (const key of await pendingResetFiles()) {
+        try {
+          await deleteFile(key);
+          await clearResetFile(key);
+        } catch {
+          remaining++;
+        }
+      }
+      return NextResponse.json({
+        ok: true,
+        warning: remaining
+          ? "تم تصفير البيانات. تعذر حذف بعض الملفات من التخزين؛ أعد المحاولة من إعادة التعيين بعد التحقق من R2."
+          : undefined,
+      });
     }
     await mutate((state) => {
       const actor = authenticated(state, hash);

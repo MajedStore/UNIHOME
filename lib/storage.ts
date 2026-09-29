@@ -2,9 +2,10 @@ import {
   S3Client,
   GetObjectCommand,
   PutObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { demo, dataPath } from "./store";
 function client() {
@@ -23,6 +24,28 @@ function client() {
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
     },
   });
+}
+export async function deleteFile(key: string) {
+  if (demo) {
+    const root = path.resolve(dataPath, "uploads");
+    const target = path.resolve(root, key);
+    if (path.dirname(target) !== root) throw new Error("Invalid file key");
+    try {
+      await unlink(target);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
+  } else {
+    const s3 = client();
+    try {
+      await s3.send(
+        new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key }),
+        { abortSignal: AbortSignal.timeout(15000) },
+      );
+    } finally {
+      s3.destroy();
+    }
+  }
 }
 export async function putFile(key: string, buffer: Buffer, type: string) {
   if (demo) {

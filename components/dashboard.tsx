@@ -46,6 +46,7 @@ type Person = {
   balance: number;
 };
 type Data = {
+  canReset?: boolean;
   me: Person;
   users: Person[];
   payments: Payment[];
@@ -55,7 +56,7 @@ type Data = {
 };
 type Modal =
   | { kind: "pay" | "notify" | "reject" | "cancel" | "edit"; payment: Payment }
-  | { kind: "create" | "notifications" | "help" }
+  | { kind: "create" | "notifications" | "help" | "reset" }
   | null;
 const labels = {
   unpaid: "بانتظار الدفع",
@@ -268,6 +269,13 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       await load();
+      if (input.action === "reset") {
+        setPage("home");
+        setPassword("");
+        setAccountMenu(false);
+      }
+      if (result.warning)
+        notifyToast.warning(result.warning, { duration: 12000 });
       if (input.action === "profile") {
         setPage("home");
         setSelectedUser(null);
@@ -763,6 +771,21 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           </button>
         </form>
       </section>
+      {data.canReset && (
+        <section className="panel settings-panel">
+          <h2>إعادة تعيين المشروع</h2>
+          <p className="field-hint">
+            حذف بيانات التطبيق والصور والإيصالات وإعادة الحسابات الستة إلى
+            البداية. هذا الخيار خاص بمجد الدين.
+          </p>
+          <button
+            className="danger-button"
+            onClick={() => showModal({ kind: "reset" })}
+          >
+            إعادة تعيين كل شيء
+          </button>
+        </section>
+      )}
     </div>
   );
   return (
@@ -1261,27 +1284,63 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
         <ModalBox
           close={close}
           title={
-            modal.kind === "create"
-              ? "إنشاء طلب دفع"
-              : modal.kind === "notifications"
-                ? "الإشعارات"
-                : modal.kind === "help"
-                  ? "من الطلب إلى تمام الدفع"
-                  : modal.kind === "pay"
-                    ? "بيانات التحويل البنكي"
-                    : modal.kind === "notify"
-                      ? "إرسال تنبيه للمسؤول"
-                      : modal.kind === "reject"
-                        ? "رفض تأكيد الدفع"
-                        : modal.kind === "edit"
-                          ? "تعديل طلب الدفع"
-                          : "حذف طلب الدفع"
+            modal.kind === "reset"
+              ? "إعادة تعيين كل شيء"
+              : modal.kind === "create"
+                ? "إنشاء طلب دفع"
+                : modal.kind === "notifications"
+                  ? "الإشعارات"
+                  : modal.kind === "help"
+                    ? "من الطلب إلى تمام الدفع"
+                    : modal.kind === "pay"
+                      ? "بيانات التحويل البنكي"
+                      : modal.kind === "notify"
+                        ? "إرسال تنبيه للمسؤول"
+                        : modal.kind === "reject"
+                          ? "رفض تأكيد الدفع"
+                          : modal.kind === "edit"
+                            ? "تعديل طلب الدفع"
+                            : "حذف طلب الدفع"
           }
         >
           {error && (
             <div className="error" role="alert">
               {error}
             </div>
+          )}
+          {modal.kind === "reset" && (
+            <form
+              onSubmit={(e) =>
+                act(
+                  { action: "reset", ...formValues(e) },
+                  "تمت إعادة التعيين. سجّل الدخول بكلمة mjd123",
+                )
+              }
+            >
+              <p className="modal-intro">
+                سيتم حذف جميع الطلبات والإشعارات والصور والإيصالات والسجلات
+                والنسخ القديمة، وتسجيل خروج الجميع. ستعود الحسابات الستة دون
+                بيانات بنكية وكلمة مرورها mjd123. يبقى مجد الدين وسامح مسؤولَين.
+                لا يمكن التراجع.
+              </p>
+              <label>
+                كلمة مرورك الحالية
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  maxLength={128}
+                />
+              </label>
+              <label>
+                اكتب «إعادة تعيين كل شيء» للتأكيد
+                <input name="confirmation" required autoComplete="off" />
+              </label>
+              <button className="danger-button" disabled={busy}>
+                {busy ? "جارٍ إعادة التعيين…" : "تأكيد المسح وإعادة التعيين"}
+              </button>
+            </form>
           )}
           {modal.kind === "create" && (
             <form

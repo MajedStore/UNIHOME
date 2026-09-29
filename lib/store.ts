@@ -43,14 +43,32 @@ async function readLocal(): Promise<State> {
     return seed();
   }
 }
-export async function mutate<T>(fn: (state: State) => T): Promise<T> {
+export async function mutate<T>(
+  fn: (state: State) => T,
+  reset = false,
+): Promise<T> {
   if (demo) {
     const task = (globals.queue || Promise.resolve())
       .catch(() => {})
       .then(async () => {
         const state = await readLocal();
+        const previousFiles = state.files.map((f) => f.key);
         const result = fn(state);
         await mkdir(dataPath, { recursive: true });
+        if (reset) {
+          let pending: string[] = [];
+          try {
+            pending = JSON.parse(
+              await readFile(path.join(dataPath, "reset-cleanup.json"), "utf8"),
+            );
+          } catch (e) {
+            if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+          }
+          await writeFile(
+            path.join(dataPath, "reset-cleanup.json"),
+            JSON.stringify([...new Set([...pending, ...previousFiles])]),
+          );
+        }
         await writeFile(
           path.join(dataPath, "state.tmp"),
           JSON.stringify(state),
@@ -76,6 +94,31 @@ export async function mutate<T>(fn: (state: State) => T): Promise<T> {
         const state = await readMongoState(db, session);
         const before = structuredClone(state);
         const result = fn(state);
+        if (reset) {
+          const keys = new Set(before.files.map((f) => f.key));
+          const legacy = await db
+            .collection("households")
+            .find({}, { session })
+            .toArray();
+          const backups = await db
+            .collection("migration_backups")
+            .find({}, { session })
+            .toArray();
+          for (const record of [...legacy, ...backups.map((b) => b.source)]) {
+            for (const file of record?.state?.files || [])
+              if (typeof file.key === "string") keys.add(file.key);
+          }
+          for (const key of keys)
+            await db
+              .collection<{ _id: string }>("reset_cleanup")
+              .updateOne(
+                { _id: key },
+                { $setOnInsert: { _id: key } },
+                { upsert: true, session },
+              );
+          await db.collection("households").deleteMany({}, { session });
+          await db.collection("migration_backups").deleteMany({}, { session });
+        }
         await writeChanges(db, session, before, state);
         return result;
       },
@@ -83,6 +126,36 @@ export async function mutate<T>(fn: (state: State) => T): Promise<T> {
     )) as T;
   } finally {
     await session.endSession();
+  }
+}
+export async function pendingResetFiles(): Promise<string[]> {
+  if (demo) {
+    try {
+      return JSON.parse(
+        await readFile(path.join(dataPath, "reset-cleanup.json"), "utf8"),
+      );
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw e;
+    }
+  }
+  const { db } = await connection();
+  return (
+    await db.collection<{ _id: string }>("reset_cleanup").find().toArray()
+  ).map((f) => f._id);
+}
+export async function clearResetFile(key: string) {
+  if (demo) {
+    const remaining = (await pendingResetFiles()).filter((k) => k !== key);
+    await writeFile(
+      path.join(dataPath, "reset-cleanup.json"),
+      JSON.stringify(remaining),
+    );
+  } else {
+    const { db } = await connection();
+    await db
+      .collection<{ _id: string }>("reset_cleanup")
+      .deleteOne({ _id: key });
   }
 }
 export async function readState(): Promise<State> {
