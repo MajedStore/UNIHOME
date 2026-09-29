@@ -551,7 +551,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 onClick={() =>
                   act(
                     { action: "approve", id: p.id },
-                    "تم تأكيد الدفعة وتحديث الرصيد",
+                    "تم تأكيد الدفعة وتحديث المبلغ المتراكم",
                   )
                 }
               >
@@ -949,7 +949,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   <div className="balance-bottom">
                     <span className="light-dot" />
                     {total === 0
-                      ? "لا توجد مبالغ مستحقة"
+                      ? "لا يوجد مبلغ متراكم عليك"
                       : `${scoped.filter((p) => ["unpaid", "review"].includes(p.status)).length} طلبات تحتاج إلى المتابعة`}
                     <ArrowDownLeft size={18} />
                   </div>
@@ -1114,7 +1114,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 <div className="panel-footer">
                   <ShieldCheck size={15} />
                   <span>
-                    يُخصم المبلغ من رصيدك بعد تأكيد المسؤول لاستلام الدفعة.
+                    يُخصم المبلغ من تراكمك بعد تأكيد المسؤول لاستلام الدفعة.
                   </span>
                 </div>
               </section>
@@ -1408,7 +1408,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 هل ترغب بتنبيه المسؤول عن إتمامك لعملية الدفع؟
               </p>
               <p className="modal-intro centered">
-                سيصبح الطلب قيد المراجعة، وسيبقى المبلغ ضمن رصيدك حتى يتم
+                سيصبح الطلب قيد المراجعة، وسيبقى المبلغ ضمن تراكمك حتى يتم
                 التأكيد.
               </p>
               <div className="modal-actions">
@@ -1462,7 +1462,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               onSubmit={(e) =>
                 act(
                   { action: "edit", id: modal.payment.id, ...formValues(e) },
-                  "تم تعديل الطلب وتحديث الرصيد",
+                  "تم تعديل الطلب وتحديث المبلغ المتراكم",
                 )
               }
             >
@@ -1501,7 +1501,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 {money(modal.payment.amount)}؟
               </p>
               <p className="modal-intro">
-                سيُلغى الطلب ويُحذف المبلغ من الرصيد المتراكم. سيظل ظاهرًا في
+                سيُلغى الطلب ويُحذف المبلغ من تراكمك. سيظل ظاهرًا في
                 سجل الطلبات الملغاة.
               </p>
               <div className="modal-actions">
@@ -1511,7 +1511,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   onClick={() =>
                     act(
                       { action: "cancel", id: modal.payment.id },
-                      "تم إلغاء الطلب وتحديث الرصيد",
+                      "تم إلغاء الطلب وتحديث المبلغ المتراكم",
                     )
                   }
                 >
@@ -1567,7 +1567,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               {[
                 [
                   "يُضاف طلبك",
-                  "يقسّم المسؤول مصروف البيت بين المشاركين، ويظهر نصيبك في رصيدك.",
+                  "يقسّم المسؤول مصروف البيت بين المشاركين، ويُضاف نصيبك إلى تراكمك.",
                 ],
                 [
                   "تحوّل المبلغ",
@@ -1579,7 +1579,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 ],
                 [
                   "يراجع ويؤكّد",
-                  "بعد التأكيد يُخصم المبلغ من رصيدك، ويصلك إشعار باكتمال الدفع.",
+                  "بعد التأكيد يُخصم المبلغ من تراكمك، ويصلك إشعار باكتمال الدفع.",
                 ],
               ].map(([title, body], i) => (
                 <div key={title}>
