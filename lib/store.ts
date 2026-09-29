@@ -1,7 +1,8 @@
-import { MongoClient } from "mongodb";
+﻿import { MongoClient } from "mongodb";
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
-import { seed, State } from "./model";
+import { seed, type State } from "./model";
+import { initializeMongo, readMongoState, writeChanges } from "./mongo-state";
 export const demo = process.env.DEMO_MODE === "true";
 export const dataPath = path.join(
   process.cwd(),
@@ -10,23 +11,33 @@ export const dataPath = path.join(
     ? path.basename(process.env.DEMO_DATA_DIR)
     : "local",
 );
-type Household = { _id: string; version: number; state: State };
 const globals = globalThis as typeof globalThis & {
-  mongo?: Promise<MongoClient>;
+  mongoV2?: Promise<MongoClient>;
+  mongoSchemaV2?: Promise<void>;
   queue?: Promise<unknown>;
 };
-async function collection() {
+async function connection() {
   if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
-  globals.mongo ??= new MongoClient(process.env.MONGODB_URI).connect();
-  return (await globals.mongo)
-    .db(process.env.MONGODB_DB || "unihome")
-    .collection<Household>("households");
+  globals.mongoV2 ??= new MongoClient(process.env.MONGODB_URI)
+    .connect()
+    .catch((error) => {
+      globals.mongoV2 = undefined;
+      throw error;
+    });
+  const client = await globals.mongoV2;
+  const db = client.db(process.env.MONGODB_DB || "unihome");
+  globals.mongoSchemaV2 ??= initializeMongo(client, db).catch((error) => {
+    globals.mongoSchemaV2 = undefined;
+    throw error;
+  });
+  await globals.mongoSchemaV2;
+  return { client, db };
 }
-async function readLocal() {
+async function readLocal(): Promise<State> {
   try {
     return JSON.parse(
       await readFile(path.join(dataPath, "state.json"), "utf8"),
-    ) as State;
+    );
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return seed();
@@ -53,33 +64,39 @@ export async function mutate<T>(fn: (state: State) => T): Promise<T> {
     globals.queue = task;
     return task;
   }
-  const col = await collection();
-  for (let retry = 0; retry < 12; retry++) {
-    let doc = await col.findOne({ _id: "home" });
-    if (!doc) {
-      try {
-        await col.insertOne({ _id: "home", version: 0, state: seed() });
-      } catch (error) {
-        if ((error as { code?: number }).code !== 11000) throw error;
-      }
-      doc = await col.findOne({ _id: "home" });
-    }
-    if (!doc) throw new Error("Database initialization failed");
-    const result = fn(doc.state);
-    const write = await col.replaceOne(
-      { _id: "home", version: doc.version },
-      { ...doc, version: doc.version + 1 },
-    );
-    if (write.modifiedCount) return result;
+  const { client, db } = await connection();
+  const session = client.startSession();
+  try {
+    return (await session.withTransaction(
+      async () => {
+        // Serialize application writes while committing all related collections atomically.
+        await db
+          .collection<{ _id: string; revision: number }>("app_metadata")
+          .updateOne({ _id: "schema" }, { $inc: { revision: 1 } }, { session });
+        const state = await readMongoState(db, session);
+        const before = structuredClone(state);
+        const result = fn(state);
+        await writeChanges(db, session, before, state);
+        return result;
+      },
+      { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } },
+    )) as T;
+  } finally {
+    await session.endSession();
   }
-  throw new Error("Concurrent update limit reached");
 }
 export async function readState(): Promise<State> {
   if (demo) {
     await globals.queue?.catch(() => {});
     return readLocal();
   }
-  const doc = await (await collection()).findOne({ _id: "home" });
-  if (doc) return doc.state;
-  return mutate((state) => state);
+  const { client, db } = await connection();
+  const session = client.startSession();
+  try {
+    return (await session.withTransaction(() => readMongoState(db, session), {
+      readConcern: { level: "snapshot" },
+    })) as State;
+  } finally {
+    await session.endSession();
+  }
 }

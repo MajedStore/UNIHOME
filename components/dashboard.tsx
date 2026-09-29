@@ -179,7 +179,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
   const accountRef = useRef<HTMLDivElement>(null);
   const seenNotices = useRef<{ userId: string; ids: Set<string> } | null>(null);
   const [page, setPage] = useState("home");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("unpaid");
   const [query, setQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [highlight, setHighlight] = useState("");
@@ -484,13 +484,10 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
   const total = scoped
     .filter((p) => p.status === "review" || p.status === "unpaid")
     .reduce((s, p) => s + p.amount, 0);
-  const paid = scoped
-    .filter((p) => p.status === "paid")
-    .reduce((s, p) => s + p.amount, 0);
   const unread = data.notices.filter((n) => !n.read).length;
   function navigate(next: string) {
     setPage(next);
-    setFilter("all");
+    setFilter("unpaid");
     setQuery("");
     setSelectedUser(null);
     setError("");
@@ -500,7 +497,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
     if (p) {
       setPage(p.userId === me.id ? "home" : "admin");
       setSelectedUser(p.userId === me.id ? null : p.userId);
-      setFilter("all");
+      setFilter(p.status);
       setQuery("");
       setHighlight(p.id);
     }
@@ -560,7 +557,9 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           <strong>{money(p.amount)}</strong>
           <span className={"badge " + p.status}>
             <i />
-            {labels[p.status]}
+            {inAdmin && p.status === "review"
+              ? "بانتظار تأكيدك"
+              : labels[p.status]}
           </span>
         </div>
         <div className="payment-buttons">
@@ -964,7 +963,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   className="back-link"
                   onClick={() => {
                     setSelectedUser(null);
-                    setFilter("all");
+                    setFilter("unpaid");
                   }}
                 >
                   <ArrowLeft size={16} />
@@ -972,7 +971,11 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 </button>
               )}
               <section
-                className={inAdmin ? "stats-grid" : "stats-grid personal-stats"}
+                className={
+                  inAdmin
+                    ? "stats-grid admin-stats"
+                    : "stats-grid personal-stats"
+                }
               >
                 <div
                   className={
@@ -987,7 +990,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   <div className="stat-title">
                     <span>
                       {inAdmin && !selectedUser
-                        ? "إجمالي المبالغ المستحقة"
+                        ? "المبلغ المراد تحصيله"
                         : "المبلغ المتراكم عليك"}
                     </span>
                     <Wallet size={22} />
@@ -1007,24 +1010,14 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                       <span className="stat-icon amber">
                         <Clock size={21} />
                       </span>
-                      <div className="stat-title">قيد المراجعة</div>
+                      <div className="stat-title">بانتظار تأكيدك</div>
                       <strong>
                         {money(pending.reduce((s, p) => s + p.amount, 0))}
                       </strong>
                       <p>
                         {pending.length
-                          ? `${pending.length} طلب بانتظار تأكيد المسؤول`
+                          ? `${pending.length} طلب بانتظار تأكيدك`
                           : "لا توجد دفعات بانتظار التأكيد"}
-                      </p>
-                    </div>
-                    <div className="stat-card">
-                      <span className="stat-icon mint">
-                        <CheckCheck size={21} />
-                      </span>
-                      <div className="stat-title">تم تسديده</div>
-                      <strong>{money(paid)}</strong>
-                      <p>
-                        مجموع دفعاتك المؤكدة{inAdmin ? " في هذه الصفحة" : ""}
                       </p>
                     </div>
                   </>
@@ -1034,7 +1027,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 <section className="members-section">
                   <div className="section-title">
                     <h2>
-                      أفراد البيت <span>٦</span>
+                      أفراد البيت <span>{data.users.length}</span>
                     </h2>
                     <span className="subtle">اضغط على أي فرد لعرض طلباته</span>
                   </div>
@@ -1045,7 +1038,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                         key={u.id}
                         onClick={() => {
                           setSelectedUser(u.id);
-                          setFilter("all");
+                          setFilter("unpaid");
                         }}
                       >
                         <div className="member-top">
@@ -1113,10 +1106,10 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 </div>
                 <div className="filter-tabs">
                   {[
-                    ["all", "الكل"],
                     ["unpaid", "بانتظار الدفع"],
-                    ["review", "قيد المراجعة"],
+                    ["review", inAdmin ? "بانتظار تأكيدك" : "قيد المراجعة"],
                     ["paid", "تم الدفع"],
+                    ["all", "الكل"],
                     ["cancelled", "ملغى"],
                   ].map(([value, label]) => (
                     <button

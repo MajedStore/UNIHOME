@@ -15,12 +15,13 @@ function fixture() {
   const state = seed();
   state.users[5].iban = iban;
   state.users[5].bankName = "SAMEH";
-  return { state, admin: state.users[5], member: state.users[0] };
+  return { state, admin: state.users[5], member: state.users[2] };
 }
-test("six specified accounts, one admin, hashed initial passwords and normalized phones", () => {
+test("six specified accounts, two admins, hashed initial passwords and normalized phones", () => {
   const { state } = fixture();
   assert.equal(state.users.length, 6);
-  assert.equal(state.users.filter((u) => u.role === "admin").length, 1);
+  assert.equal(state.users.filter((u) => u.role === "admin").length, 2);
+  assert.equal(state.users[0].role, "admin");
   assert.equal(state.users[5].name, "سامح");
   assert.ok(verifyPassword("mjd123", state.users[0].password));
   assert.notEqual(state.users[0].password, "mjd123");

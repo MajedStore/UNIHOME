@@ -2295,3 +2295,14 @@ textarea,
   opacity: 0.55;
   cursor: wait;
 }
+.admin-stats {
+  grid-template-columns: 1.25fr 1fr;
+}
+@media (max-width: 850px) {
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+  .admin-stats .balance-card {
+    grid-column: auto;
+  }
+}

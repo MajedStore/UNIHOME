@@ -54,7 +54,13 @@ export type State = {
   files: StoredFile[];
   sessions: { hash: string; userId: string; expires: number }[];
   attempts: Record<string, { count: number; until: number }>;
-  audit: { actor: string; action: string; target: string; at: string }[];
+  audit: {
+    id?: string;
+    actor: string;
+    action: string;
+    target: string;
+    at: string;
+  }[];
 };
 export class AppError extends Error {
   constructor(
@@ -108,7 +114,7 @@ export function seed(): State {
       id: String(i + 1),
       name,
       phone: phones[i],
-      role: i === 5 ? "admin" : "member",
+      role: i === 0 || i === 5 ? "admin" : "member",
       password: hashPassword("mjd123"),
       iban: "",
       bankName: "",

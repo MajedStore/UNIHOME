@@ -67,7 +67,7 @@ export async function checkConnections(mode = "development") {
         await client.connect();
         const collection = client
           .db(process.env.MONGODB_DB || "unihome")
-          .collection("households");
+          .collection("users");
         await collection.findOne(
           { _id: "home" },
           { projection: { _id: 1 }, maxTimeMS: 10000 },
