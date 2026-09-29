@@ -1,0 +1,15 @@
+{
+  "watch": [
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.development.local",
+    "scripts",
+    "next.config.ts",
+    "nodemon.json"
+  ],
+  "ext": "env,local,development,mjs,ts,json",
+  "ignore": ["node_modules/**", ".next/**", ".data/**", "test-results/**"],
+  "delay": 500,
+  "exec": "node scripts/start-checked.mjs development"
+}
