@@ -3,6 +3,8 @@ import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { seed, type State } from "./model";
 import { initializeMongo, readMongoState, writeChanges } from "./mongo-state";
+import { deliverPush } from "./push";
+import type { Notice } from "./model";
 export const demo = process.env.DEMO_MODE === "true";
 export const dataPath = path.join(
   process.cwd(),
@@ -16,7 +18,7 @@ const globals = globalThis as typeof globalThis & {
   mongoSchemaV2?: Promise<void>;
   queue?: Promise<unknown>;
 };
-async function connection() {
+export async function connection() {
   if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
   globals.mongoV2 ??= new MongoClient(process.env.MONGODB_URI)
     .connect()
@@ -84,8 +86,9 @@ export async function mutate<T>(
   }
   const { client, db } = await connection();
   const session = client.startSession();
+  let newNotices: Notice[] = [];
   try {
-    return (await session.withTransaction(
+    const outcome = (await session.withTransaction(
       async () => {
         // Serialize application writes while committing all related collections atomically.
         await db
@@ -94,7 +97,11 @@ export async function mutate<T>(
         const state = await readMongoState(db, session);
         const before = structuredClone(state);
         const result = fn(state);
+        newNotices = state.notices.filter(
+          (n) => !before.notices.some((old) => old.id === n.id),
+        );
         if (reset) {
+          await db.collection("push_subscriptions").deleteMany({}, { session });
           const keys = new Set(before.files.map((f) => f.key));
           const legacy = await db
             .collection("households")
@@ -124,6 +131,12 @@ export async function mutate<T>(
       },
       { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } },
     )) as T;
+    try {
+      await deliverPush(db, newNotices);
+    } catch {
+      console.warn("Push delivery unavailable; data was saved.");
+    }
+    return outcome;
   } finally {
     await session.endSession();
   }

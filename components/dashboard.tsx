@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import type { Notice, Payment } from "@/lib/model";
 import { toast as notifyToast } from "sonner";
+import PushPrompt from "./push-prompt";
 type Person = {
   id: string;
   name: string;
@@ -187,6 +188,19 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
   const [password, setPassword] = useState("");
   const [chosen, setChosen] = useState<string[]>([]);
   const [amount, setAmount] = useState("");
+  const openedPush = useRef("");
+  useEffect(() => {
+    if (!data) return;
+    const id = new URLSearchParams(window.location.search).get("payment");
+    if (!id || openedPush.current === id) return;
+    const payment = data.payments.find((p) => p.id === id);
+    if (!payment) return;
+    openedPush.current = id;
+    setPage(payment.userId === data.me.id ? "home" : "admin");
+    setSelectedUser(payment.userId === data.me.id ? null : payment.userId);
+    setFilter(payment.status);
+    setHighlight(id);
+  }, [data]);
   const close = useCallback(() => setModal(null), []);
   const load = useCallback(async () => {
     const response = await fetch("/api/app");
@@ -871,6 +885,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               </button>
             </div>
           )}
+          {page === "home" && !onboarding && <PushPrompt userId={me.id} />}
           <div className="page-heading">
             <div>
               <h1>
@@ -1501,8 +1516,8 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 {money(modal.payment.amount)}؟
               </p>
               <p className="modal-intro">
-                سيُلغى الطلب ويُحذف المبلغ من تراكمك. سيظل ظاهرًا في
-                سجل الطلبات الملغاة.
+                سيُلغى الطلب ويُحذف المبلغ من تراكمك. سيظل ظاهرًا في سجل الطلبات
+                الملغاة.
               </p>
               <div className="modal-actions">
                 <button

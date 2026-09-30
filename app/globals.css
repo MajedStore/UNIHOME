@@ -2330,3 +2330,37 @@ textarea,
 .page-heading {
   margin-bottom: 24px;
 }
+.push-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  margin-bottom: 22px;
+  background: #edf5f1;
+  border: 1px solid #dce8e0;
+  border-radius: 9px;
+  color: var(--blue);
+}
+.push-prompt > div {
+  flex: 1;
+}
+.push-prompt strong {
+  font-size: 12px;
+}
+.push-prompt p {
+  font-size: 11px;
+  color: #708177;
+  line-height: 1.8;
+  margin-top: 4px;
+}
+@media (max-width: 600px) {
+  .push-prompt {
+    flex-wrap: wrap;
+  }
+  .push-prompt > div {
+    min-width: 220px;
+  }
+  .push-prompt > .primary {
+    width: 100%;
+  }
+}
