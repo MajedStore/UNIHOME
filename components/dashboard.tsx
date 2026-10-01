@@ -210,7 +210,13 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
     stripeReturn.current = true;
     stripeAction(result === "cancel" ? "close" : "verify", id);
     params.delete("stripe");
-    window.history.replaceState(null, "", "/?" + params.toString());
+    params.delete("payment");
+    setFilter("unpaid");
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + (params.size ? "?" + params.toString() : ""),
+    );
   }, [!!data]);
   useEffect(() => {
     if (!data) return;
@@ -221,8 +227,15 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
     openedPush.current = id;
     setPage(payment.userId === data.me.id ? "home" : "admin");
     setSelectedUser(payment.userId === data.me.id ? null : payment.userId);
-    setFilter(payment.status);
-    setHighlight(id);
+    setFilter("unpaid");
+    setHighlight(payment.status === "unpaid" ? id : "");
+    const params = new URLSearchParams(window.location.search);
+    params.delete("payment");
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + (params.size ? "?" + params.toString() : ""),
+    );
   }, [data]);
   const close = useCallback(() => setModal(null), []);
   const load = useCallback(async () => {
