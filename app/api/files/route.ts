@@ -76,6 +76,7 @@ export async function POST(request: Request) {
         state.payments.some(
           (p) =>
             p.id === paymentId &&
+            !p.deleting &&
             p.userId === owner.id &&
             ["unpaid", "review"].includes(p.status),
         ),
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
           (p) => p.id === paymentId && p.userId === actor.id,
         );
         ensure(
-          p && ["unpaid", "review"].includes(p.status),
+          p && !p.deleting && ["unpaid", "review"].includes(p.status),
           "تغيرت حالة الطلب، حدّث الصفحة",
         );
         p.receipt = id;

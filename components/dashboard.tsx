@@ -665,7 +665,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               <CreditCard size={18} />
             </button>
           )}
-          {isAdmin && p.status === "cancelled" && (
+          {isAdmin && (
             <button
               className="danger-button small"
               aria-label="حذف نهائي"
@@ -1474,7 +1474,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                     <strong>{money(modal.payment.amount)}</strong>
                   </div>
                   <div className="stripe-summary">
-                    <span>رسوم إضافية: 2.50 دولار</span>
+                    <span>رسوم إضافية: 1.75 دولار</span>
                     <strong>
                       {money(
                         modal.payment.stripe &&
@@ -1681,8 +1681,9 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 حذف طلب «{modal.payment.reason}» نهائيًا؟
               </p>
               <p className="modal-intro">
-                سيُحذف الطلب الملغى وإشعاراته وجميع الوصول المرتبطة به وسجلاته.
-                لا يمكن التراجع عن الحذف.
+                سيُحذف الطلب وإشعاراته وجميع الوصول المرتبطة به وسجلاته، مهما
+                كانت حالته. لا يمكن التراجع عن الحذف. حذف طلب مدفوع لا يعيد
+                المبلغ إلى الدافع.
               </p>
               <div className="modal-actions">
                 <button

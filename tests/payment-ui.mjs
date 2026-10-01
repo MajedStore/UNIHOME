@@ -63,7 +63,7 @@ try {
     .click();
   const dialog = page.getByRole("dialog", { name: "اختر طريقة الدفع" });
   await dialog.waitFor();
-  assert.equal(await dialog.getByText("رسوم إضافية: 2.50 دولار").count(), 1);
+  assert.equal(await dialog.getByText("رسوم إضافية: 1.75 دولار").count(), 1);
   assert.equal(await dialog.locator(".stripe-summary").count(), 3);
   await dialog
     .getByRole("button", { name: "المتابعة إلى Stripe ودفع الإجمالي" })

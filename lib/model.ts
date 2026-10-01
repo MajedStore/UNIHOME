@@ -29,6 +29,7 @@ export type Payment = {
   updatedAt: string;
   receipt?: string;
   rejection?: string;
+  deleting?: boolean;
   stripe?: {
     attempt: string;
     sessionId?: string;
@@ -252,6 +253,7 @@ export function transition(
 ) {
   const p = state.payments.find((p) => p.id === id);
   ensure(p, "الطلب غير موجود", 404);
+  ensure(!p.deleting, "جارٍ حذف الطلب نهائيًا");
   ensure(
     !stripePending(p),
     "توجد جلسة دفع Stripe مفتوحة. أغلقها أو انتظر انتهاءها قبل تعديل الطلب",
@@ -306,7 +308,7 @@ export function deletePayment(state: State, actor: User, id: string) {
   ensure(actor.role === "admin", "هذه العملية للمشرف فقط", 403);
   const p = state.payments.find((p) => p.id === id);
   ensure(p, "الطلب غير موجود", 404);
-  ensure(p.status === "cancelled", "يمكن حذف الطلبات الملغاة فقط");
+  ensure(!stripePending(p), "أغلق جلسة Stripe وتحقق من نتيجتها قبل حذف الطلب");
   state.payments = state.payments.filter((p) => p.id !== id);
   state.notices = state.notices.filter((n) => n.paymentId !== id);
   state.files = state.files.filter((f) => f.paymentId !== id);

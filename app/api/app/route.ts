@@ -190,7 +190,12 @@ export async function POST(request: Request) {
         const actor = authenticated(state, hash);
         ensure(actor.role === "admin", "هذه العملية للمشرف فقط", 403);
         const p = state.payments.find((p) => p.id === input.id);
-        ensure(p && p.status === "cancelled", "يمكن حذف الطلبات الملغاة فقط");
+        ensure(p, "الطلب غير موجود", 404);
+        ensure(
+          !stripePending(p),
+          "أغلق جلسة Stripe وتحقق من نتيجتها قبل حذف الطلب",
+        );
+        p.deleting = true;
         return state.files
           .filter((f) => f.paymentId === p.id)
           .map((f) => f.key);
@@ -249,7 +254,7 @@ export async function POST(request: Request) {
         ensure(actor.role === "admin", "هذه العملية للمشرف فقط", 403);
         const p = state.payments.find((p) => p.id === input.id);
         ensure(
-          p && p.status === "unpaid",
+          p && !p.deleting && p.status === "unpaid",
           "يمكن تعديل الطلبات غير المدفوعة فقط",
         );
         ensure(!stripePending(p), "أغلق جلسة Stripe قبل تعديل الطلب");

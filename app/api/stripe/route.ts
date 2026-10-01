@@ -64,6 +64,7 @@ export async function POST(request: Request) {
       const actor = authenticated(state, hash);
       const p = state.payments.find((p) => p.id === input.id);
       ensure(p && p.userId === actor.id, "الطلب غير موجود", 404);
+      ensure(!p.deleting, "جارٍ حذف الطلب نهائيًا");
       ensure(p.status === "unpaid", "يمكن دفع الطلبات غير المدفوعة فقط");
       ensure(
         !stripePending(p),
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
             price_data: {
               currency: options.currency,
               unit_amount: options.fee,
-              product_data: { name: "رسوم الدفع الإضافية — 2.50 USD" },
+              product_data: { name: "رسوم الدفع الإضافية — 1.75 USD" },
             },
           },
         ],
