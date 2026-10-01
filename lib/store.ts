@@ -127,6 +127,43 @@ export async function mutate<T>(
           await db.collection("migration_backups").deleteMany({}, { session });
         }
         await writeChanges(db, session, before, state);
+        if (!reset) {
+          const deleted = before.payments.filter(
+            (p) => !state.payments.some((current) => current.id === p.id),
+          );
+          if (deleted.length) {
+            const ids = deleted.map((p) => p.id);
+            const targets = [
+              ...ids,
+              ...deleted
+                .filter(
+                  (p) =>
+                    !state.payments.some(
+                      (current) => current.batch === p.batch,
+                    ),
+                )
+                .map((p) => p.batch),
+            ];
+            // Remove obsolete migration snapshots of permanently deleted orders too.
+            for (const [collection, prefix] of [
+              ["households", "state"],
+              ["migration_backups", "source.state"],
+            ]) {
+              await db.collection(collection).updateMany(
+                {},
+                {
+                  $pull: {
+                    [`${prefix}.payments`]: { id: { $in: ids } },
+                    [`${prefix}.notices`]: { paymentId: { $in: ids } },
+                    [`${prefix}.files`]: { paymentId: { $in: ids } },
+                    [`${prefix}.audit`]: { target: { $in: targets } },
+                  },
+                } as import("mongodb").UpdateFilter<import("mongodb").Document>,
+                { session },
+              );
+            }
+          }
+        }
         return result;
       },
       { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } },

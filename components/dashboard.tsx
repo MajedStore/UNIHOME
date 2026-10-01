@@ -31,6 +31,8 @@ import {
   CircleHelp,
   Building2,
   Pencil,
+  CreditCard,
+  Trash2,
 } from "lucide-react";
 import type { Notice, Payment } from "@/lib/model";
 import { toast as notifyToast } from "sonner";
@@ -53,9 +55,13 @@ type Data = {
   notices: Notice[];
   demo: boolean;
   currency: string;
+  stripe: { enabled: boolean; fee: number; currency: string };
 };
 type Modal =
-  | { kind: "pay" | "notify" | "reject" | "cancel" | "edit"; payment: Payment }
+  | {
+      kind: "pay" | "notify" | "reject" | "cancel" | "edit" | "delete";
+      payment: Payment;
+    }
   | { kind: "create" | "notifications" | "help" | "reset" }
   | null;
 const labels = {
@@ -189,6 +195,18 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [amount, setAmount] = useState("");
   const openedPush = useRef("");
+  const stripeReturn = useRef(false);
+  useEffect(() => {
+    if (!data || stripeReturn.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("stripe"),
+      id = params.get("payment");
+    if (!result || !id) return;
+    stripeReturn.current = true;
+    stripeAction(result === "cancel" ? "close" : "verify", id);
+    params.delete("stripe");
+    window.history.replaceState(null, "", "/?" + params.toString());
+  }, [!!data]);
   useEffect(() => {
     if (!data) return;
     const id = new URLSearchParams(window.location.search).get("payment");
@@ -299,6 +317,36 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
     } catch (e) {
       setError((e as Error).message);
       return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function stripeAction(action: string, id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, id, fee: data?.stripe.fee }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      if (result.url) {
+        window.location.assign(result.url);
+        return;
+      }
+      await load();
+      setModal(null);
+      setToast(
+        result.paid
+          ? "تم الدفع وتأكيد الطلب تلقائيًا"
+          : action === "close"
+            ? "تم إغلاق جلسة الدفع؛ يمكنك اختيار طريقة أخرى"
+            : "لم يتأكد الدفع بعد؛ ستتحدث حالة الطلب تلقائيًا",
+      );
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -512,16 +560,17 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                <FileText size={13} /> عرض الوصل
+                <FileText size={17} /> عرض الوصل
               </a>
             )}
             {p.userId === me.id && ["unpaid", "review"].includes(p.status) && (
               <label className="upload-link">
-                <Upload size={13} />
-                {p.receipt ? "استبدال الوصل" : "إرفاق وصل (اختياري)"}
+                <Upload size={17} />
+                {p.receipt ? "استبدال وصل الدفع" : "رفع وصل الدفع"}
                 <input
                   type="file"
-                  hidden
+                  className="receipt-file-input"
+                  aria-label="رفع وصل الدفع"
                   accept="image/png,image/jpeg,image/webp,application/pdf"
                   disabled={busy}
                   onChange={(e) => upload(e.target.files?.[0], "receipt", p.id)}
@@ -546,14 +595,14 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 className="primary small"
                 onClick={() => showModal({ kind: "pay", payment: p })}
               >
-                دفع
+                <Building2 size={17} /> تحويل بنكي
                 <ArrowLeft size={15} />
               </button>
               <button
                 className="text-button"
                 onClick={() => showModal({ kind: "notify", payment: p })}
               >
-                تنبيه المسؤول
+                <Bell size={17} /> حوّلت المبلغ، تنبيه المسؤول
               </button>
             </>
           )}
@@ -592,7 +641,27 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               className="text-button muted"
               onClick={() => showModal({ kind: "cancel", payment: p })}
             >
-              حذف الطلب
+              إلغاء الطلب
+            </button>
+          )}
+          {p.userId === me.id &&
+            p.status === "unpaid" &&
+            (data!.stripe.enabled || p.stripe?.sessionId) && (
+              <button
+                className="stripe-button"
+                disabled={busy}
+                onClick={() => showModal({ kind: "pay", payment: p })}
+              >
+                <CreditCard size={17} /> الدفع عبر Stripe
+              </button>
+            )}
+          {isAdmin && p.status === "cancelled" && (
+            <button
+              className="danger-button small"
+              disabled={busy}
+              onClick={() => showModal({ kind: "delete", payment: p })}
+            >
+              <Trash2 size={17} /> حذف نهائي
             </button>
           )}
           {p.status === "review" && !inAdmin && (
@@ -1198,14 +1267,16 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   : modal.kind === "help"
                     ? "من الطلب إلى تمام الدفع"
                     : modal.kind === "pay"
-                      ? "بيانات التحويل البنكي"
+                      ? "اختر طريقة الدفع"
                       : modal.kind === "notify"
                         ? "إرسال تنبيه للمسؤول"
                         : modal.kind === "reject"
                           ? "رفض تأكيد الدفع"
                           : modal.kind === "edit"
                             ? "تعديل طلب الدفع"
-                            : "حذف طلب الدفع"
+                            : modal.kind === "delete"
+                              ? "حذف الطلب نهائيًا"
+                              : "إلغاء طلب الدفع"
           }
         >
           {error && (
@@ -1366,6 +1437,78 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           )}
           {modal.kind === "pay" && (
             <>
+              {(data.stripe.enabled || modal.payment.stripe?.sessionId) && (
+                <section className="stripe-option">
+                  <h3>
+                    <CreditCard size={21} /> الدفع عبر Stripe
+                  </h3>
+                  <p>
+                    يتأكد الطلب تلقائيًا فور نجاح الدفع، دون انتظار مراجعة
+                    المسؤول.
+                  </p>
+                  <div className="stripe-summary">
+                    <span>مبلغ الطلب</span>
+                    <strong>{money(modal.payment.amount)}</strong>
+                  </div>
+                  <div className="stripe-summary">
+                    <span>رسوم إضافية: 2.50 دولار</span>
+                    <strong>
+                      {money(
+                        modal.payment.stripe &&
+                          modal.payment.stripe.expires > Date.now()
+                          ? modal.payment.stripe.fee
+                          : data.stripe.fee,
+                      )}
+                    </strong>
+                  </div>
+                  <div className="stripe-summary">
+                    <span>الإجمالي</span>
+                    <strong>
+                      {money(
+                        modal.payment.amount +
+                          (modal.payment.stripe &&
+                          modal.payment.stripe.expires > Date.now()
+                            ? modal.payment.stripe.fee
+                            : data.stripe.fee),
+                      )}
+                    </strong>
+                  </div>
+                  {modal.payment.stripe &&
+                  !modal.payment.stripe.paid &&
+                  (modal.payment.stripe.sessionId ||
+                    modal.payment.stripe.expires > Date.now()) ? (
+                    <>
+                      <p>
+                        توجد جلسة دفع مفتوحة. تحقق من نتيجتها أو أغلقها لاختيار
+                        طريقة أخرى.
+                      </p>
+                      <button
+                        className="secondary wide"
+                        disabled={busy}
+                        onClick={() => stripeAction("verify", modal.payment.id)}
+                      >
+                        تحقق من حالة الدفع
+                      </button>
+                      <button
+                        className="secondary wide"
+                        disabled={busy}
+                        onClick={() => stripeAction("close", modal.payment.id)}
+                      >
+                        إغلاق جلسة Stripe
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="stripe-button wide"
+                      disabled={busy}
+                      onClick={() => stripeAction("checkout", modal.payment.id)}
+                    >
+                      <CreditCard size={18} /> المتابعة إلى Stripe ودفع الإجمالي
+                    </button>
+                  )}
+                </section>
+              )}
+              <h3>التحويل البنكي — دون رسوم إضافية</h3>
               <p className="modal-intro">
                 حوّل المبلغ إلى الحساب التالي باستخدام تطبيق البنك الخاص بك.
               </p>
@@ -1401,7 +1544,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 </button>
               </div>
               <p className="field-hint">
-                هذا التطبيق ينظّم الدفعات. يتم التحويل من خلال البنك.
+                بعد التحويل البنكي، ارفع الوصل ونبّه المسؤول لتأكيد الدفع.
               </p>
               <button
                 className="primary wide"
@@ -1509,10 +1652,38 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               </button>
             </form>
           )}
+          {modal.kind === "delete" && (
+            <>
+              <p className="confirm-text">
+                حذف طلب «{modal.payment.reason}» نهائيًا؟
+              </p>
+              <p className="modal-intro">
+                سيُحذف الطلب الملغى وإشعاراته وجميع الوصول المرتبطة به وسجلاته.
+                لا يمكن التراجع عن الحذف.
+              </p>
+              <div className="modal-actions">
+                <button
+                  className="danger-button"
+                  disabled={busy}
+                  onClick={() =>
+                    act(
+                      { action: "delete", id: modal.payment.id },
+                      "تم حذف الطلب وجميع بياناته المرتبطة نهائيًا",
+                    )
+                  }
+                >
+                  <Trash2 size={17} /> تأكيد الحذف النهائي
+                </button>
+                <button className="secondary" disabled={busy} onClick={close}>
+                  رجوع
+                </button>
+              </div>
+            </>
+          )}
           {modal.kind === "cancel" && (
             <>
               <p className="confirm-text">
-                حذف طلب «{modal.payment.reason}» بقيمة{" "}
+                إلغاء طلب «{modal.payment.reason}» بقيمة{" "}
                 {money(modal.payment.amount)}؟
               </p>
               <p className="modal-intro">
@@ -1530,7 +1701,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                     )
                   }
                 >
-                  نعم، حذف الطلب
+                  نعم، إلغاء الطلب
                 </button>
                 <button className="secondary" onClick={close}>
                   رجوع

@@ -2364,3 +2364,118 @@ textarea,
     width: 100%;
   }
 }
+
+/* Prominent, keyboard-accessible payment actions. */
+.receipt-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.receipt-actions a,
+.upload-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid #c6d6ee;
+  border-radius: 10px;
+  background: #edf4ff;
+  color: #244f8e;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.receipt-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.upload-link:focus-within {
+  outline: 3px solid #7ca5eb;
+  outline-offset: 3px;
+}
+.upload-link:has(input:disabled) {
+  opacity: 0.55;
+  cursor: wait;
+}
+.payment-buttons {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.payment-buttons .text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid #d5deeb;
+  border-radius: 10px;
+  background: #f7f9fc;
+  font-size: 13px;
+  font-weight: 700;
+}
+.stripe-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 15px;
+  border: 1px solid #5945cc;
+  border-radius: 10px;
+  background: #635bff;
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.stripe-button:hover {
+  background: #5148db;
+}
+.stripe-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.stripe-option {
+  padding: 18px;
+  margin-bottom: 24px;
+  border: 1px solid #d4ceff;
+  border-radius: 14px;
+  background: #f7f5ff;
+}
+.stripe-option h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.stripe-option p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.stripe-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+@media (max-width: 640px) {
+  .payment-buttons {
+    width: 100%;
+  }
+  .payment-buttons button {
+    flex: 1 1 auto;
+  }
+  .receipt-actions a,
+  .upload-link {
+    min-height: 44px;
+  }
+}

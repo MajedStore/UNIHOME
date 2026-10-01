@@ -12,12 +12,14 @@ import {
 } from "@/lib/store";
 import { canReset, resetState } from "@/lib/reset";
 import { deleteFile } from "@/lib/storage";
+import { stripeOptions } from "@/lib/stripe";
 import {
   AppError,
   audit,
   balance,
   cents,
   createPayments,
+  deletePayment,
   ensure,
   hashPassword,
   notify,
@@ -25,6 +27,7 @@ import {
   phoneNumber,
   tokenHash,
   transition,
+  stripePending,
   validIban,
   verifyPassword,
 } from "@/lib/model";
@@ -73,6 +76,7 @@ export async function GET() {
           .slice(0, 100),
         demo,
         currency: process.env.APP_CURRENCY || "TRY",
+        stripe: await stripeOptions(),
       },
       { headers: { "Cache-Control": "no-store" } },
     );
@@ -181,6 +185,22 @@ export async function POST(request: Request) {
           : undefined,
       });
     }
+    if (input.action === "delete") {
+      const files = await mutate((state) => {
+        const actor = authenticated(state, hash);
+        ensure(actor.role === "admin", "هذه العملية للمشرف فقط", 403);
+        const p = state.payments.find((p) => p.id === input.id);
+        ensure(p && p.status === "cancelled", "يمكن حذف الطلبات الملغاة فقط");
+        return state.files
+          .filter((f) => f.paymentId === p.id)
+          .map((f) => f.key);
+      });
+      for (const key of files) await deleteFile(key);
+      await mutate((state) =>
+        deletePayment(state, authenticated(state, hash), input.id),
+      );
+      return NextResponse.json({ ok: true });
+    }
     await mutate((state) => {
       const actor = authenticated(state, hash);
       if (input.action === "profile") {
@@ -232,6 +252,7 @@ export async function POST(request: Request) {
           p && p.status === "unpaid",
           "يمكن تعديل الطلبات غير المدفوعة فقط",
         );
+        ensure(!stripePending(p), "أغلق جلسة Stripe قبل تعديل الطلب");
         ensure(
           typeof input.reason === "string" &&
             input.reason.trim().length >= 2 &&
