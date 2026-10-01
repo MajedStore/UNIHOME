@@ -599,14 +599,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           {p.userId === me.id && p.status === "unpaid" && (
             <>
               <button
-                className="primary small"
-                aria-label="تحويل بنكي"
-                title="تحويل بنكي"
-                onClick={() => showModal({ kind: "pay", payment: p })}
-              >
-                <Building2 size={18} />
-              </button>
-              <button
                 className="text-button"
                 aria-label="حوّلت المبلغ، تنبيه المسؤول"
                 title="تنبيه المسؤول بعد التحويل"
@@ -665,8 +657,8 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           {p.userId === me.id && p.status === "unpaid" && (
             <button
               className="stripe-button"
-              aria-label="الدفع عبر Stripe"
-              title="الدفع الإلكتروني عبر Stripe"
+              aria-label="اختر طريقة الدفع"
+              title="الدفع عبر Stripe أو التحويل البنكي"
               disabled={busy}
               onClick={() => showModal({ kind: "pay", payment: p })}
             >
