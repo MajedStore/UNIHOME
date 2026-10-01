@@ -9,9 +9,7 @@ export function stripeClient() {
 export async function stripeOptions(readRate = usdExchangeRate) {
   const currency = (process.env.APP_CURRENCY || "TRY").toLowerCase();
   const configured =
-    !!process.env.STRIPE_SECRET_KEY &&
-    !!process.env.STRIPE_WEBHOOK_SECRET &&
-    !!process.env.APP_ORIGIN;
+    !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET;
   const quote = configured ? await readRate(currency) : null;
   const rate = quote?.rate || 0;
   // This app stores money in hundredths; only supported two-decimal currencies are allowed.
@@ -27,6 +25,11 @@ export async function stripeOptions(readRate = usdExchangeRate) {
     currency,
     fee,
     rateDate: quote?.date,
+    unavailableReason: !configured
+      ? "الدفع الإلكتروني غير مفعّل حاليًا. يرجى التواصل مع المسؤول أو استخدام التحويل البنكي."
+      : !quote
+        ? "تعذر جلب سعر الصرف حاليًا. حاول مجددًا بعد قليل أو استخدم التحويل البنكي."
+        : undefined,
   };
 }
 export function fulfillStripe(state: State, session: Stripe.Checkout.Session) {

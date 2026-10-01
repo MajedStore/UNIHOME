@@ -111,6 +111,8 @@ test("Stripe fee uses automatic rates and disables new checkout when rates are u
     process.env.APP_CURRENCY = "USD";
     assert.equal((await stripeOptions()).fee, 250);
     assert.equal((await stripeOptions()).enabled, true);
+    delete process.env.APP_ORIGIN;
+    assert.equal((await stripeOptions()).enabled, true);
     process.env.APP_CURRENCY = "TRY";
     delete process.env.STRIPE_USD_EXCHANGE_RATE;
     const quote = async () => ({ rate: 40.25, date: "2026-10-01" });

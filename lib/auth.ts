@@ -30,4 +30,5 @@ export function sameOrigin(request: Request) {
     "مصدر الطلب غير مسموح",
     403,
   );
+  return parsed.origin;
 }

@@ -55,7 +55,12 @@ type Data = {
   notices: Notice[];
   demo: boolean;
   currency: string;
-  stripe: { enabled: boolean; fee: number; currency: string };
+  stripe: {
+    enabled: boolean;
+    fee: number;
+    currency: string;
+    unavailableReason?: string;
+  };
 };
 type Modal =
   | {
@@ -559,14 +564,16 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                 href={"/api/files?id=" + p.receipt}
                 target="_blank"
                 rel="noreferrer"
+                aria-label="عرض الوصل"
+                title="عرض الوصل"
               >
-                <FileText size={17} /> عرض الوصل
+                <FileText size={17} />
               </a>
             )}
             {p.userId === me.id && ["unpaid", "review"].includes(p.status) && (
               <label className="upload-link">
                 <Upload size={17} />
-                {p.receipt ? "استبدال وصل الدفع" : "رفع وصل الدفع"}
+                <span>{p.receipt ? "استبدال الوصل" : "رفع الوصل"}</span>
                 <input
                   type="file"
                   className="receipt-file-input"
@@ -593,16 +600,19 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
             <>
               <button
                 className="primary small"
+                aria-label="تحويل بنكي"
+                title="تحويل بنكي"
                 onClick={() => showModal({ kind: "pay", payment: p })}
               >
-                <Building2 size={17} /> تحويل بنكي
-                <ArrowLeft size={15} />
+                <Building2 size={18} />
               </button>
               <button
                 className="text-button"
+                aria-label="حوّلت المبلغ، تنبيه المسؤول"
+                title="تنبيه المسؤول بعد التحويل"
                 onClick={() => showModal({ kind: "notify", payment: p })}
               >
-                <Bell size={17} /> حوّلت المبلغ، تنبيه المسؤول
+                <Bell size={18} />
               </button>
             </>
           )}
@@ -611,6 +621,8 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
               <button
                 className="primary small"
                 disabled={busy}
+                aria-label="تأكيد الدفع"
+                title="تأكيد الدفع"
                 onClick={() =>
                   act(
                     { action: "approve", id: p.id },
@@ -618,13 +630,15 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   )
                 }
               >
-                تأكيد الدفع
+                <CheckCheck size={18} />
               </button>
               <button
                 className="text-button danger"
+                aria-label="رفض التأكيد"
+                title="رفض التأكيد"
                 onClick={() => showModal({ kind: "reject", payment: p })}
               >
-                رفض التأكيد
+                <X size={18} />
               </button>
             </>
           )}
@@ -632,36 +646,42 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
             <button
               className="text-button"
               onClick={() => showModal({ kind: "edit", payment: p })}
+              aria-label="تعديل المبلغ"
+              title="تعديل المبلغ"
             >
-              تعديل المبلغ
+              <Pencil size={18} />
             </button>
           )}
           {inAdmin && ["unpaid", "review"].includes(p.status) && (
             <button
               className="text-button muted"
+              aria-label="إلغاء الطلب"
+              title="إلغاء الطلب"
               onClick={() => showModal({ kind: "cancel", payment: p })}
             >
-              إلغاء الطلب
+              <X size={18} />
             </button>
           )}
-          {p.userId === me.id &&
-            p.status === "unpaid" &&
-            (data!.stripe.enabled || p.stripe?.sessionId) && (
-              <button
-                className="stripe-button"
-                disabled={busy}
-                onClick={() => showModal({ kind: "pay", payment: p })}
-              >
-                <CreditCard size={17} /> الدفع عبر Stripe
-              </button>
-            )}
+          {p.userId === me.id && p.status === "unpaid" && (
+            <button
+              className="stripe-button"
+              aria-label="الدفع عبر Stripe"
+              title="الدفع الإلكتروني عبر Stripe"
+              disabled={busy}
+              onClick={() => showModal({ kind: "pay", payment: p })}
+            >
+              <CreditCard size={18} />
+            </button>
+          )}
           {isAdmin && p.status === "cancelled" && (
             <button
               className="danger-button small"
+              aria-label="حذف نهائي"
+              title="حذف نهائي"
               disabled={busy}
               onClick={() => showModal({ kind: "delete", payment: p })}
             >
-              <Trash2 size={17} /> حذف نهائي
+              <Trash2 size={18} />
             </button>
           )}
           {p.status === "review" && !inAdmin && (
@@ -1437,6 +1457,17 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           )}
           {modal.kind === "pay" && (
             <>
+              {!data.stripe.enabled && !modal.payment.stripe?.sessionId && (
+                <section className="stripe-option" role="status">
+                  <h3>
+                    <CreditCard size={21} /> الدفع الإلكتروني عبر Stripe
+                  </h3>
+                  <p>
+                    {data.stripe.unavailableReason ||
+                      "الدفع الإلكتروني غير متاح حاليًا. يرجى المحاولة لاحقًا أو التواصل مع المسؤول."}
+                  </p>
+                </section>
+              )}
               {(data.stripe.enabled || modal.payment.stripe?.sessionId) && (
                 <section className="stripe-option">
                   <h3>

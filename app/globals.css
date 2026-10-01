@@ -2365,11 +2365,11 @@ textarea,
   }
 }
 
-/* Prominent, keyboard-accessible payment actions. */
+/* Compact payment actions with accessible touch targets. */
 .receipt-actions {
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .receipt-actions a,
 .upload-link {
@@ -2378,13 +2378,13 @@ textarea,
   align-items: center;
   gap: 7px;
   min-height: 40px;
-  padding: 9px 13px;
-  border: 1px solid #c6d6ee;
-  border-radius: 10px;
-  background: #edf4ff;
-  color: #244f8e;
-  font-size: 13px;
-  font-weight: 700;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #60756a;
+  font-size: 11px;
+  font-weight: 400;
   cursor: pointer;
 }
 .receipt-file-input {
@@ -2405,20 +2405,24 @@ textarea,
 }
 .payment-buttons {
   flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: row;
+  gap: 6px;
 }
-.payment-buttons .text-button {
+.payment-buttons > button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
   min-height: 40px;
-  padding: 9px 12px;
+  padding: 0;
+  border-radius: 10px;
+}
+.payment-buttons .text-button {
   border: 1px solid #d5deeb;
   border-radius: 10px;
   background: #f7f9fc;
-  font-size: 13px;
-  font-weight: 700;
 }
 .stripe-button {
   display: inline-flex;
@@ -2470,9 +2474,6 @@ textarea,
 @media (max-width: 640px) {
   .payment-buttons {
     width: 100%;
-  }
-  .payment-buttons button {
-    flex: 1 1 auto;
   }
   .receipt-actions a,
   .upload-link {

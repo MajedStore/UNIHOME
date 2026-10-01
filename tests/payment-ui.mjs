@@ -46,6 +46,11 @@ await page.route("**/api/app", async (route) => {
 try {
   await page.goto(process.env.TEST_BASE_URL || "http://localhost:3005");
   await page.locator(".payment-row").waitFor();
+  const icons = page.locator('.payment-buttons button');
+  for (const icon of await icons.all()) {
+    assert.equal((await icon.innerText()).trim(), '');
+    assert.ok((await icon.boundingBox()).width <= 44);
+  }
   const receipt = page.getByLabel("رفع وصل الدفع");
   assert.equal(await receipt.count(), 1);
   const receiptBox = await receipt.boundingBox();
@@ -70,6 +75,13 @@ try {
     false,
   );
   await dialog.getByRole("button", { name: "إغلاق", exact: true }).click();
+  state.stripe.enabled = false;
+  await page.reload();
+  await page.getByRole('button', { name: 'الدفع عبر Stripe', exact: true }).click();
+  await page.getByRole('dialog').getByRole('status').waitFor();
+  assert.equal(await page.getByRole('button', { name: 'المتابعة إلى Stripe ودفع الإجمالي' }).count(), 0);
+  await page.getByRole('dialog').getByRole('button', { name: 'إغلاق', exact: true }).click();
+  state.stripe.enabled = true;
   payment.status = "cancelled";
   me.balance = 0;
   await page.reload();

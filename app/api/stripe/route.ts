@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   let reservation: { paymentId: string; attempt: string } | undefined;
   try {
-    sameOrigin(request);
+    const origin = sameOrigin(request);
     const hash = await sessionHash();
     const input = JSON.parse(
       (await limitedBody(request, 4000)).toString("utf8"),
@@ -79,7 +79,6 @@ export async function POST(request: Request) {
       return structuredClone(p);
     });
     reservation = { paymentId: payment.id, attempt };
-    const origin = new URL(process.env.APP_ORIGIN!).origin;
     const session = await stripe.checkout.sessions.create(
       {
         mode: "payment",

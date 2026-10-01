@@ -2,7 +2,7 @@
 
 Set these server environment variables (never add real secrets to Git):
 
-- `APP_ORIGIN`: the public site origin, without a trailing slash.
+- `APP_ORIGIN`: optional fixed site origin, without a trailing slash. When omitted, Checkout returns to the current request's origin after the server verifies it matches the site's host. This supports both localhost and the deployed domain without hiding Stripe when this variable is absent.
 - `STRIPE_SECRET_KEY`: the Stripe account's test or live secret key.
 - `STRIPE_WEBHOOK_SECRET`: signing secret for this site's webhook endpoint.
 - `APP_CURRENCY`: `TRY` (default), `USD`, `EUR`, or `GBP`.
@@ -16,7 +16,7 @@ The payment dialog shows the original amount, additional fee, and total before r
 
 Open sessions prevent edits, cancellation, and manual confirmation to avoid conflicting payments. The payer can check or close a session in the payment dialog. An uncertain network result keeps the order reserved briefly to prevent duplicate charging. Stripe Checkout expires after about 31 minutes. Existing sessions must be checked or closed before using another payment method.
 
-Stripe stays unavailable until its credentials and origin are configured and an exchange rate is available. Live card payments and webhook delivery require testing with your own Stripe account; unit tests do not contact Stripe.
+The electronic payment icon is always shown on the payer's unpaid orders. Checkout requires Stripe credentials and an available exchange rate; if unavailable, the payment dialog explains this. Live card payments and webhook delivery require testing with your own Stripe account; unit tests do not contact Stripe.
 
 For local webhook testing, forward events with the Stripe CLI:
 
