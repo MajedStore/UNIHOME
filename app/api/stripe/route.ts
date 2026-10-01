@@ -104,7 +104,7 @@ export async function POST(request: Request) {
             price_data: {
               currency: options.currency,
               unit_amount: options.fee,
-              product_data: { name: "رسوم الدفع الإضافية — 1.75 USD" },
+              product_data: { name: "رسوم الدفع الإضافية — 2.15 USD" },
             },
           },
         ],

@@ -13,7 +13,7 @@ export async function stripeOptions(readRate = usdExchangeRate) {
   const quote = configured ? await readRate(currency) : null;
   const rate = quote?.rate || 0;
   // This app stores money in hundredths; only supported two-decimal currencies are allowed.
-  const fee = Math.round(175 * rate);
+  const fee = Math.round(215 * rate);
   return {
     enabled:
       configured &&

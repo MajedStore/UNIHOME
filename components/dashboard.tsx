@@ -1487,7 +1487,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                     <strong>{money(modal.payment.amount)}</strong>
                   </div>
                   <div className="stripe-summary">
-                    <span>رسوم إضافية: 1.75 دولار</span>
+                    <span>رسوم إضافية: 2.15 دولار</span>
                     <strong>
                       {money(
                         modal.payment.stripe &&

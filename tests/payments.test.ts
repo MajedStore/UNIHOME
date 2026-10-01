@@ -100,15 +100,15 @@ test("Stripe validates the session and total, confirms once, and blocks conflict
     sessionId: "cs_test",
     expires: Date.now() - 1,
     currency: "usd",
-    fee: 175,
-    total: 2175,
+    fee: 215,
+    total: 2215,
   };
   const session = {
     id: "cs_test",
     client_reference_id: p.id,
     metadata: { paymentId: p.id, attempt: "attempt" },
     currency: "usd",
-    amount_total: 2175,
+    amount_total: 2215,
     payment_status: "paid",
   } as unknown as Stripe.Checkout.Session;
   assert.throws(() => transition(state, admin, p.id, "cancel"));
@@ -146,17 +146,17 @@ test("Stripe fee uses automatic rates and disables new checkout when rates are u
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
     process.env.APP_ORIGIN = "https://example.com";
     process.env.APP_CURRENCY = "USD";
-    assert.equal((await stripeOptions()).fee, 175);
+    assert.equal((await stripeOptions()).fee, 215);
     assert.equal((await stripeOptions()).enabled, true);
     delete process.env.APP_ORIGIN;
     assert.equal((await stripeOptions()).enabled, true);
     process.env.APP_CURRENCY = "TRY";
     delete process.env.STRIPE_USD_EXCHANGE_RATE;
     const quote = async () => ({ rate: 40.25, date: "2026-10-01" });
-    assert.equal((await stripeOptions(quote)).fee, 7044);
+    assert.equal((await stripeOptions(quote)).fee, 8654);
     assert.equal((await stripeOptions(quote)).enabled, true);
     process.env.STRIPE_USD_EXCHANGE_RATE = "999";
-    assert.equal((await stripeOptions(quote)).fee, 7044);
+    assert.equal((await stripeOptions(quote)).fee, 8654);
     assert.equal((await stripeOptions(async () => null)).enabled, false);
   } finally {
     for (const key of Object.keys(process.env))
