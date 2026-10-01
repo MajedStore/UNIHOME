@@ -55,12 +55,6 @@ type Data = {
   notices: Notice[];
   demo: boolean;
   currency: string;
-  stripe: {
-    enabled: boolean;
-    fee: number;
-    currency: string;
-    unavailableReason?: string;
-  };
 };
 type Modal =
   | {
@@ -200,24 +194,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [amount, setAmount] = useState("");
   const openedPush = useRef("");
-  const stripeReturn = useRef(false);
-  useEffect(() => {
-    if (!data || stripeReturn.current) return;
-    const params = new URLSearchParams(window.location.search);
-    const result = params.get("stripe"),
-      id = params.get("payment");
-    if (!result || !id) return;
-    stripeReturn.current = true;
-    stripeAction(result === "cancel" ? "close" : "verify", id);
-    params.delete("stripe");
-    params.delete("payment");
-    setFilter("unpaid");
-    window.history.replaceState(
-      null,
-      "",
-      window.location.pathname + (params.size ? "?" + params.toString() : ""),
-    );
-  }, [!!data]);
   useEffect(() => {
     if (!data) return;
     const id = new URLSearchParams(window.location.search).get("payment");
@@ -335,36 +311,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
     } catch (e) {
       setError((e as Error).message);
       return false;
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function stripeAction(action: string, id: string) {
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/stripe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, id, fee: data?.stripe.fee }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      if (result.url) {
-        window.location.assign(result.url);
-        return;
-      }
-      await load();
-      setModal(null);
-      setToast(
-        result.paid
-          ? "تم الدفع وتأكيد الطلب تلقائيًا"
-          : action === "close"
-            ? "تم إغلاق جلسة الدفع؛ يمكنك اختيار طريقة أخرى"
-            : "لم يتأكد الدفع بعد؛ ستتحدث حالة الطلب تلقائيًا",
-      );
-    } catch (e) {
-      setError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -669,9 +615,9 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           )}
           {p.userId === me.id && p.status === "unpaid" && (
             <button
-              className="stripe-button"
-              aria-label="اختر طريقة الدفع"
-              title="الدفع عبر Stripe أو التحويل البنكي"
+              className="primary small"
+              aria-label="التحويل البنكي"
+              title="التحويل البنكي"
               disabled={busy}
               onClick={() => showModal({ kind: "pay", payment: p })}
             >
@@ -1292,7 +1238,7 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
                   : modal.kind === "help"
                     ? "من الطلب إلى تمام الدفع"
                     : modal.kind === "pay"
-                      ? "اختر طريقة الدفع"
+                      ? "التحويل البنكي"
                       : modal.kind === "notify"
                         ? "إرسال تنبيه للمسؤول"
                         : modal.kind === "reject"
@@ -1462,88 +1408,6 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
           )}
           {modal.kind === "pay" && (
             <>
-              {!data.stripe.enabled && !modal.payment.stripe?.sessionId && (
-                <section className="stripe-option" role="status">
-                  <h3>
-                    <CreditCard size={21} /> الدفع الإلكتروني عبر Stripe
-                  </h3>
-                  <p>
-                    {data.stripe.unavailableReason ||
-                      "الدفع الإلكتروني غير متاح حاليًا. يرجى المحاولة لاحقًا أو التواصل مع المسؤول."}
-                  </p>
-                </section>
-              )}
-              {(data.stripe.enabled || modal.payment.stripe?.sessionId) && (
-                <section className="stripe-option">
-                  <h3>
-                    <CreditCard size={21} /> الدفع عبر Stripe
-                  </h3>
-                  <p>
-                    يتأكد الطلب تلقائيًا فور نجاح الدفع، دون انتظار مراجعة
-                    المسؤول.
-                  </p>
-                  <div className="stripe-summary">
-                    <span>مبلغ الطلب</span>
-                    <strong>{money(modal.payment.amount)}</strong>
-                  </div>
-                  <div className="stripe-summary">
-                    <span>رسوم إضافية: 2.15 دولار</span>
-                    <strong>
-                      {money(
-                        modal.payment.stripe &&
-                          modal.payment.stripe.expires > Date.now()
-                          ? modal.payment.stripe.fee
-                          : data.stripe.fee,
-                      )}
-                    </strong>
-                  </div>
-                  <div className="stripe-summary">
-                    <span>الإجمالي</span>
-                    <strong>
-                      {money(
-                        modal.payment.amount +
-                          (modal.payment.stripe &&
-                          modal.payment.stripe.expires > Date.now()
-                            ? modal.payment.stripe.fee
-                            : data.stripe.fee),
-                      )}
-                    </strong>
-                  </div>
-                  {modal.payment.stripe &&
-                  !modal.payment.stripe.paid &&
-                  (modal.payment.stripe.sessionId ||
-                    modal.payment.stripe.expires > Date.now()) ? (
-                    <>
-                      <p>
-                        توجد جلسة دفع مفتوحة. تحقق من نتيجتها أو أغلقها لاختيار
-                        طريقة أخرى.
-                      </p>
-                      <button
-                        className="secondary wide"
-                        disabled={busy}
-                        onClick={() => stripeAction("verify", modal.payment.id)}
-                      >
-                        تحقق من حالة الدفع
-                      </button>
-                      <button
-                        className="secondary wide"
-                        disabled={busy}
-                        onClick={() => stripeAction("close", modal.payment.id)}
-                      >
-                        إغلاق جلسة Stripe
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="stripe-button wide"
-                      disabled={busy}
-                      onClick={() => stripeAction("checkout", modal.payment.id)}
-                    >
-                      <CreditCard size={18} /> المتابعة إلى Stripe ودفع الإجمالي
-                    </button>
-                  )}
-                </section>
-              )}
               <h3>التحويل البنكي — دون رسوم إضافية</h3>
               <p className="modal-intro">
                 حوّل المبلغ إلى الحساب التالي باستخدام تطبيق البنك الخاص بك.

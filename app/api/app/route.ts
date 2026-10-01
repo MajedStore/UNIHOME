@@ -12,7 +12,6 @@ import {
 } from "@/lib/store";
 import { canReset, resetState } from "@/lib/reset";
 import { deleteFile } from "@/lib/storage";
-import { stripeOptions } from "@/lib/stripe";
 import {
   AppError,
   audit,
@@ -27,7 +26,6 @@ import {
   phoneNumber,
   tokenHash,
   transition,
-  stripePending,
   validIban,
   verifyPassword,
 } from "@/lib/model";
@@ -76,7 +74,6 @@ export async function GET() {
           .slice(0, 100),
         demo,
         currency: process.env.APP_CURRENCY || "TRY",
-        stripe: await stripeOptions(),
       },
       { headers: { "Cache-Control": "no-store" } },
     );
@@ -191,10 +188,6 @@ export async function POST(request: Request) {
         ensure(actor.role === "admin", "هذه العملية للمشرف فقط", 403);
         const p = state.payments.find((p) => p.id === input.id);
         ensure(p, "الطلب غير موجود", 404);
-        ensure(
-          !stripePending(p),
-          "أغلق جلسة Stripe وتحقق من نتيجتها قبل حذف الطلب",
-        );
         p.deleting = true;
         return state.files
           .filter((f) => f.paymentId === p.id)
@@ -257,7 +250,6 @@ export async function POST(request: Request) {
           p && !p.deleting && p.status === "unpaid",
           "يمكن تعديل الطلبات غير المدفوعة فقط",
         );
-        ensure(!stripePending(p), "أغلق جلسة Stripe قبل تعديل الطلب");
         ensure(
           typeof input.reason === "string" &&
             input.reason.trim().length >= 2 &&

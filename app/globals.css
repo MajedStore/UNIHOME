@@ -2424,53 +2424,6 @@ textarea,
   border-radius: 10px;
   background: #f7f9fc;
 }
-.stripe-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 10px 15px;
-  border: 1px solid #5945cc;
-  border-radius: 10px;
-  background: #635bff;
-  color: white;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.stripe-button:hover {
-  background: #5148db;
-}
-.stripe-button:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-.stripe-option {
-  padding: 18px;
-  margin-bottom: 24px;
-  border: 1px solid #d4ceff;
-  border-radius: 14px;
-  background: #f7f5ff;
-}
-.stripe-option h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
-}
-.stripe-option p {
-  font-size: 14px;
-  line-height: 1.8;
-}
-.stripe-summary {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 12px 0;
-  font-size: 14px;
-}
 @media (max-width: 640px) {
   .payment-buttons {
     width: 100%;

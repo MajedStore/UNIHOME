@@ -30,7 +30,6 @@ const state = {
   notices: [],
   currency: "TRY",
   demo: true,
-  stripe: { enabled: true, fee: 10000, currency: "try" },
 };
 let deleted = false;
 await page.route("**/api/app", async (route) => {
@@ -46,9 +45,9 @@ await page.route("**/api/app", async (route) => {
 try {
   await page.goto(process.env.TEST_BASE_URL || "http://localhost:3005");
   await page.locator(".payment-row").waitFor();
-  const icons = page.locator('.payment-buttons button');
+  const icons = page.locator(".payment-buttons button");
   for (const icon of await icons.all()) {
-    assert.equal((await icon.innerText()).trim(), '');
+    assert.equal((await icon.innerText()).trim(), "");
     assert.ok((await icon.boundingBox()).width <= 44);
   }
   const receipt = page.getByLabel("رفع وصل الدفع");
@@ -59,15 +58,11 @@ try {
     .getByRole("button", { name: "حوّلت المبلغ، تنبيه المسؤول", exact: true })
     .waitFor();
   await page
-    .getByRole("button", { name: "الدفع عبر Stripe", exact: true })
+    .getByRole("button", { name: "التحويل البنكي", exact: true })
     .click();
-  const dialog = page.getByRole("dialog", { name: "اختر طريقة الدفع" });
+  const dialog = page.getByRole("dialog", { name: "التحويل البنكي" });
   await dialog.waitFor();
-  assert.equal(await dialog.getByText("رسوم إضافية: 2.15 دولار").count(), 1);
-  assert.equal(await dialog.locator(".stripe-summary").count(), 3);
-  await dialog
-    .getByRole("button", { name: "المتابعة إلى Stripe ودفع الإجمالي" })
-    .waitFor();
+  await dialog.getByRole("button", { name: "نسخ الآيبان" }).waitFor();
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth,
@@ -75,13 +70,6 @@ try {
     false,
   );
   await dialog.getByRole("button", { name: "إغلاق", exact: true }).click();
-  state.stripe.enabled = false;
-  await page.reload();
-  await page.getByRole('button', { name: 'الدفع عبر Stripe', exact: true }).click();
-  await page.getByRole('dialog').getByRole('status').waitFor();
-  assert.equal(await page.getByRole('button', { name: 'المتابعة إلى Stripe ودفع الإجمالي' }).count(), 0);
-  await page.getByRole('dialog').getByRole('button', { name: 'إغلاق', exact: true }).click();
-  state.stripe.enabled = true;
   payment.status = "cancelled";
   me.balance = 0;
   await page.reload();
@@ -94,7 +82,7 @@ try {
   await page.locator(".payment-row").waitFor({ state: "hidden" });
   assert.equal(deleted, true);
   console.log(
-    "PASS: mobile actions, accessible upload, Stripe fee preview, and permanent deletion confirmation.",
+    "PASS: mobile actions, accessible upload, bank transfer dialog, and permanent deletion confirmation.",
   );
 } catch (error) {
   console.error(await page.locator("body").innerText());
