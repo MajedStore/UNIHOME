@@ -1,0 +1,16 @@
+{
+  "appId": "app.unihome.mobile",
+  "appName": "يوني هوم",
+  "webDir": "www",
+  "backgroundColor": "#17645b",
+  "loggingBehavior": "debug",
+  "server": {
+    "url": "https://unihome.up.railway.app",
+    "cleartext": false,
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "resolveServiceWorkerRequests": false
+  }
+}

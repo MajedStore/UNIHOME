@@ -84,3 +84,7 @@ npm.cmd run dev -- --port 3001
 
 المراجع: [Next.js route handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route)، [جلسات cookies](https://nextjs.org/docs/app/api-reference/functions/cookies)، [روابط R2 الموقعة](https://developers.cloudflare.com/r2/api/s3/presigned-urls/).
 # UNIHOME
+
+## تطبيق Android
+
+نسخة Capacitor المرتبطة بموقع Railway موجودة في [mobile](mobile/README.md). للبناء: `npm.cmd --prefix mobile ci` ثم `npm.cmd --prefix mobile run apk`. ملف التثبيت الناتج: `mobile/dist/unihome-debug.apk`.

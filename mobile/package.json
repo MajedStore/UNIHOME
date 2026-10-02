@@ -1,0 +1,17 @@
+{
+  "name": "unihome-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "apk": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}
