@@ -2419,10 +2419,20 @@ textarea,
   padding: 0;
   border-radius: 10px;
 }
+.receipt-actions a,
 .payment-buttons .text-button {
   border: 1px solid #d5deeb;
   border-radius: 10px;
   background: #f7f9fc;
+}
+.receipt-actions a {
+  justify-content: center;
+  width: 40px;
+  padding: 0;
+  color: var(--blue);
+}
+.receipt-actions a:hover {
+  background: #f2f7f4;
 }
 @media (max-width: 640px) {
   .payment-buttons {
@@ -2431,5 +2441,8 @@ textarea,
   .receipt-actions a,
   .upload-link {
     min-height: 44px;
+  }
+  .receipt-actions a {
+    width: 44px;
   }
 }
