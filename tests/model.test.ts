@@ -46,7 +46,56 @@ test("exact equal splits preserve every cent and bank snapshot", () => {
   );
   admin.iban = "changed";
   assert.ok(state.payments.every((p) => p.iban === iban));
-  assert.equal(balance(state), 10000);
+  assert.equal(balance(state), 8334);
+  assert.equal(balance(state, admin.id), 0);
+  assert.equal(
+    state.payments.find((p) => p.userId === admin.id)?.status,
+    "paid",
+  );
+  assert.ok(
+    state.payments
+      .filter((p) => p.userId !== admin.id)
+      .every((p) => p.status === "unpaid"),
+  );
+});
+
+test("selected splits automatically settle a member recipient, not the creator", () => {
+  const { state, admin, member } = fixture();
+  member.iban = iban;
+  member.bankName = "Member bank";
+  createPayments(state, admin, {
+    amount: "10.01",
+    reason: "كهرباء",
+    userIds: [member.id, admin.id, member.id],
+    recipientId: member.id,
+  });
+  const ownShare = state.payments.find((p) => p.userId === member.id)!;
+  assert.equal(state.payments.length, 2);
+  assert.equal(ownShare.amount, 501);
+  assert.equal(ownShare.status, "paid");
+  assert.equal(balance(state, member.id), 0);
+  assert.equal(balance(state, admin.id), 500);
+  assert.equal(balance(state), 500);
+  assert.equal(state.payments.find((p) => p.userId === admin.id)?.status, "unpaid");
+  assert.throws(() => transition(state, member, ownShare.id, "submit"));
+  assert.match(
+    state.notices.find((n) => n.paymentId === ownShare.id)!.text,
+    /تم قبول حصتك تلقائيًا/,
+  );
+});
+
+test("a request assigned only to its recipient is immediately settled", () => {
+  const { state, admin } = fixture();
+  createPayments(state, admin, {
+    amount: "20",
+    reason: "كهرباء",
+    userIds: [admin.id],
+    recipientId: admin.id,
+  });
+  assert.equal(state.payments.length, 1);
+  assert.equal(state.payments[0].amount, 2000);
+  assert.equal(state.payments[0].status, "paid");
+  assert.equal(balance(state), 0);
 });
 test("review retains debt, rejection allows resubmission, approval clears it once", () => {
   const { state, admin, member } = fixture();

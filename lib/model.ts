@@ -225,12 +225,19 @@ export function createPayments(
       recipientId: recipient.id,
       iban: recipient.iban,
       bankName: recipient.bankName,
-      status: "unpaid",
+      status: userId === recipient.id ? "paid" : "unpaid",
       createdAt: now(),
       updatedAt: now(),
     };
     state.payments.unshift(payment);
-    notify(state, userId, payment.id, "طلب دفع جديد: " + payment.reason);
+    notify(
+      state,
+      userId,
+      payment.id,
+      (payment.status === "paid"
+        ? "تم قبول حصتك تلقائيًا لأنك مستلم التحويل: "
+        : "طلب دفع جديد: ") + payment.reason,
+    );
   });
   audit(state, actor, "create", batch);
 }
