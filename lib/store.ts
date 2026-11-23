@@ -17,23 +17,51 @@ const globals = globalThis as typeof globalThis & {
   mongoV2?: Promise<MongoClient>;
   mongoSchemaV2?: Promise<void>;
   queue?: Promise<unknown>;
+  mongoUsers?: number;
+  mongoIdleTimer?: ReturnType<typeof setTimeout>;
 };
 export async function connection() {
   if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
-  globals.mongoV2 ??= new MongoClient(process.env.MONGODB_URI)
-    .connect()
-    .catch((error) => {
+  clearTimeout(globals.mongoIdleTimer);
+  globals.mongoUsers = (globals.mongoUsers ?? 0) + 1;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    globals.mongoUsers = (globals.mongoUsers ?? 1) - 1;
+    if (globals.mongoUsers !== 0) return;
+    globals.mongoIdleTimer = setTimeout(() => {
+      const pending = globals.mongoV2;
       globals.mongoV2 = undefined;
+      globals.mongoSchemaV2 = undefined;
+      // Detach first so a new request gets its own client while this one closes.
+      void pending
+        ?.then((client) => client.close())
+        .catch(() => {
+          console.warn("Could not close idle MongoDB connection.");
+        });
+    }, 60_000);
+    globals.mongoIdleTimer.unref();
+  };
+  try {
+    globals.mongoV2 ??= new MongoClient(process.env.MONGODB_URI)
+      .connect()
+      .catch((error) => {
+        globals.mongoV2 = undefined;
+        throw error;
+      });
+    const client = await globals.mongoV2;
+    const db = client.db(process.env.MONGODB_DB || "unihome");
+    globals.mongoSchemaV2 ??= initializeMongo(client, db).catch((error) => {
+      globals.mongoSchemaV2 = undefined;
       throw error;
     });
-  const client = await globals.mongoV2;
-  const db = client.db(process.env.MONGODB_DB || "unihome");
-  globals.mongoSchemaV2 ??= initializeMongo(client, db).catch((error) => {
-    globals.mongoSchemaV2 = undefined;
+    await globals.mongoSchemaV2;
+    return { client, db, release };
+  } catch (error) {
+    release();
     throw error;
-  });
-  await globals.mongoSchemaV2;
-  return { client, db };
+  }
 }
 async function readLocal(): Promise<State> {
   try {
@@ -84,7 +112,7 @@ export async function mutate<T>(
     globals.queue = task;
     return task;
   }
-  const { client, db } = await connection();
+  const { client, db, release } = await connection();
   const session = client.startSession();
   let newNotices: Notice[] = [];
   try {
@@ -175,7 +203,11 @@ export async function mutate<T>(
     }
     return outcome;
   } finally {
-    await session.endSession();
+    try {
+      await session.endSession();
+    } finally {
+      release();
+    }
   }
 }
 export async function pendingResetFiles(): Promise<string[]> {
@@ -189,10 +221,14 @@ export async function pendingResetFiles(): Promise<string[]> {
       throw e;
     }
   }
-  const { db } = await connection();
-  return (
-    await db.collection<{ _id: string }>("reset_cleanup").find().toArray()
-  ).map((f) => f._id);
+  const { db, release } = await connection();
+  try {
+    return (
+      await db.collection<{ _id: string }>("reset_cleanup").find().toArray()
+    ).map((f) => f._id);
+  } finally {
+    release();
+  }
 }
 export async function clearResetFile(key: string) {
   if (demo) {
@@ -202,10 +238,14 @@ export async function clearResetFile(key: string) {
       JSON.stringify(remaining),
     );
   } else {
-    const { db } = await connection();
-    await db
-      .collection<{ _id: string }>("reset_cleanup")
-      .deleteOne({ _id: key });
+    const { db, release } = await connection();
+    try {
+      await db
+        .collection<{ _id: string }>("reset_cleanup")
+        .deleteOne({ _id: key });
+    } finally {
+      release();
+    }
   }
 }
 export async function readState(): Promise<State> {
@@ -213,13 +253,17 @@ export async function readState(): Promise<State> {
     await globals.queue?.catch(() => {});
     return readLocal();
   }
-  const { client, db } = await connection();
+  const { client, db, release } = await connection();
   const session = client.startSession();
   try {
     return (await session.withTransaction(() => readMongoState(db, session), {
       readConcern: { level: "snapshot" },
     })) as State;
   } finally {
-    await session.endSession();
+    try {
+      await session.endSession();
+    } finally {
+      release();
+    }
   }
 }

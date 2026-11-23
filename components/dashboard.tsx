@@ -231,10 +231,33 @@ export default function Dashboard({ demoMode }: { demoMode: boolean }) {
   }, [load]);
   useEffect(() => {
     if (!data) return;
+    let lastActivity = Date.now();
+    const resume = () => {
+      const wasIdle = Date.now() - lastActivity >= 60_000;
+      lastActivity = Date.now();
+      if (wasIdle && document.visibilityState === "visible")
+        load().catch(() => {});
+    };
+    const events = [
+      "pointerdown",
+      "pointermove",
+      "keydown",
+      "scroll",
+      "visibilitychange",
+    ] as const;
+    for (const event of events)
+      document.addEventListener(event, resume, { passive: true });
     const timer = setInterval(() => {
-      if (document.visibilityState === "visible") load().catch(() => {});
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastActivity < 60_000
+      )
+        load().catch(() => {});
     }, 15000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      for (const event of events) document.removeEventListener(event, resume);
+    };
   }, [!!data, load]);
   useEffect(() => {
     const dismiss = (event: MouseEvent) => {

@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { checkConnections } from "./check-connections.mjs";
 const mode = process.argv[2] === "production" ? "production" : "development";
 process.env.NODE_ENV = mode;
+process.env.NEXT_TELEMETRY_DISABLED = "1";
 try {
   if (!(await checkConnections(mode))) {
     console.error("لم يبدأ التطبيق. صحّح الإعدادات ثم أعد المحاولة.");
